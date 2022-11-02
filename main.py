@@ -27,16 +27,6 @@ def wait_for_button():
     while (Button.CENTER not in EV3Brick.buttons.pressed()):
         pass
 
-def play_music(ev3):
-    ev3.speaker.play_notes(["D3/8", "D3/8", "D4/8"], 225)
-    wait(100)
-    ev3.speaker.play_notes(["A3/8"], 150)
-    wait(200)
-    ev3.speaker.play_notes(["G#3/8"], 150)
-    wait(50)
-    ev3.speaker.play_notes(["G3/8", "F3/8"], 150)
-    ev3.speaker.play_notes(["D3/8", "F3/8", "G3/8"], 250)
-
 
 ev3 = EV3Brick()
 
@@ -44,17 +34,21 @@ ev3 = EV3Brick()
 
 leftMotor = Motor(port = Port.B, positive_direction = Direction.CLOCKWISE)
 rightMotor = Motor(port = Port.C, positive_direction = Direction.CLOCKWISE)
-bump = TouchSensor(port = Port.S2)
+leftBump = TouchSensor(port = Port.S2)
+rightBump = TouchSensor(port = Port.S1)
 us = UltrasonicSensor(port = Port.S4)
+gyro = GyroSensor(port = Port.S3)
 
 # Wait until center button press to move
 
+print(gyro.angle())
 wait_for_button()
+
 
 run_motors(leftMotor, 180, rightMotor, 180)
 ev3.speaker.beep()
 
-while (not bump.pressed()):
+while (not (leftBump.pressed() or rightBump.pressed())):
     pass
 
 stop_motors(leftMotor, rightMotor)
@@ -73,28 +67,40 @@ ev3.speaker.beep()
 
 
 # Wall following
-ideal = 250
-k = 2
+ideal = 200
+k = 0.5
+
+prev_error = 0
 
 while(True):
-    dist = us.distance()
 
-    if(bump.pressed()):
+    if(leftBump.pressed() or rightBump.pressed()):
         run_motors(leftMotor, 80, rightMotor, -200)
         wait(1500)
 
-    ul = -k * (dist-ideal)
-    ur = k * (dist-ideal)
-    run_motors(leftMotor, ul, rightMotor, ur)
-    wait(100)
-    run_motors(leftMotor, 150, rightMotor, 150)
-    wait(300)
-    
+    dist = us.distance()
 
+    if (dist == 2550 and prev_error < 0):
+        stop_motors(leftMotor, rightMotor)
+        wait(200)
+        run_motors(leftMotor, -200, rightMotor, -200)
+        wait(1000)
+        stop_motors(leftMotor, rightMotor)
+        wait(200)
+
+    error = dist-ideal
+    error = min(error, 80)
+
+    ul = -k * error + 150
+    ur = k * error + 150
+    run_motors(leftMotor, ul, rightMotor, ur)
+
+    prev_error = error
+    wait(500)
 
 stop_motors(leftMotor, rightMotor)
 stop_motors(leftMotor, rightMotor)
 wait(10)
 stop_motors(leftMotor, rightMotor)
 
-play_music(ev3)
+ev3.speaker.beep()
