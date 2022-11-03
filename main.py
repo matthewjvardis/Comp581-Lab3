@@ -7,12 +7,14 @@ from pybricks.tools import wait, StopWatch, DataLog
 from pybricks.robotics import DriveBase
 from pybricks.media.ev3dev import SoundFile, ImageFile
 
+import math
+
 
 # This program requires LEGO EV3 MicroPython v2.0 or higher.
 # Click "Open user guide" on the EV3 extension tab for more information.
 
 def deg_to_rad(y):
-    return(y*(3.14159265358979/180))
+    return(y*(math.pi/180))
 
 def run_motors(leftMotor, leftSpeed, rightMotor, rightSpeed):
     leftMotor.run(leftSpeed)
@@ -26,6 +28,27 @@ def wait_for_button():
     pressed = 0
     while (Button.CENTER not in EV3Brick.buttons.pressed()):
         pass
+
+def update_position(x, y, theta, ur, ul, t, l=15, r=3):
+    vr = ur * r
+    vl = ul * r
+
+    if (vr - vl == 0):
+        newx = x + vr*cos(theta)*t
+        newy = y + vr*sin(theta)*t
+        return nexx, newy, theta
+
+    radius = (l/2) * (vr+vl)/(vr-vl)
+    iccx = x - radius*math.sin(theta)
+    iccy = y + radius*math.cos(theta)
+    omega = (vr-vl)/l
+    alpha = omega * t
+
+    newx = math.cos(alpha)*(x-iccx) - math.sin(alpha)*(y-iccy) + iccx
+    newy = math.sin(alpha)*(x-iccx) - math.cos(alpha)*(y-iccy) + iccy
+    newTheta = theta + alpha
+
+    return newx, newy, newTheta
 
 
 ev3 = EV3Brick()
@@ -41,7 +64,6 @@ gyro = GyroSensor(port = Port.S3)
 
 # Wait until center button press to move
 
-print(gyro.angle())
 wait_for_button()
 
 
@@ -67,26 +89,31 @@ ev3.speaker.beep()
 
 
 # Wall following
-ideal = 200
+ideal = 150
 k = 0.5
 
 prev_error = 0
 
-while(True):
+x = 0
+y = 0
+theta = 0
+
+time_passed = 0
+
+stop_watch = StopWatch()
+
+while(((x > 5 or x < -1) and (y > 5 or y < -5)) or (time_passed < 5)):
+
+    stop_watch.resume()
 
     if(leftBump.pressed() or rightBump.pressed()):
+        stop_watch.pause()
+        stop_watch.reset()
         run_motors(leftMotor, 80, rightMotor, -200)
         wait(1500)
+        continue
 
     dist = us.distance()
-
-    if (dist == 2550 and prev_error < 0):
-        stop_motors(leftMotor, rightMotor)
-        wait(200)
-        run_motors(leftMotor, -200, rightMotor, -200)
-        wait(1000)
-        stop_motors(leftMotor, rightMotor)
-        wait(200)
 
     error = dist-ideal
     error = min(error, 80)
@@ -98,9 +125,23 @@ while(True):
     prev_error = error
     wait(500)
 
+    stop_watch.pause()
+    #stop_motors(leftMotor, rightMotor)
+    t = stop_watch.time() / 1000
+
+    x, y, theta = update_position(x, y, theta, deg_to_rad(ur), deg_to_rad(ul), t)
+    time_passed = time_passed + 1
+    time_passed = min(time_passed, 5)
+
+    print("x:", str(x))
+    print("y:", str(y))
+
+    stop_watch.reset()
+
 stop_motors(leftMotor, rightMotor)
 stop_motors(leftMotor, rightMotor)
 wait(10)
 stop_motors(leftMotor, rightMotor)
 
+print(str(time_passed))
 ev3.speaker.beep()
