@@ -29,7 +29,7 @@ def wait_for_button():
     while (Button.CENTER not in EV3Brick.buttons.pressed()):
         pass
 
-def update_position(x, y, theta, ur, ul, t, l=14.6, r=2.75):
+def update_position(x, y, theta, ur, ul, t, l=14.8, r=3):
     vr = ur * r
     vl = ul * r
 
@@ -63,9 +63,9 @@ ev3 = EV3Brick()
 
 leftMotor = Motor(port = Port.B, positive_direction = Direction.COUNTERCLOCKWISE)
 rightMotor = Motor(port = Port.C, positive_direction = Direction.COUNTERCLOCKWISE)
-leftBump = TouchSensor(port = Port.S2)
+leftBump = TouchSensor(port = Port.S3)
 rightBump = TouchSensor(port = Port.S1)
-us = UltrasonicSensor(port = Port.S4)
+us = UltrasonicSensor(port = Port.S2)
 
 # Wait until center button press to move
 
@@ -101,6 +101,9 @@ print("theta", str(theta))
 
 ev3.speaker.beep()
 
+wait(1500)
+dist = us.distance()
+
 
 # Wall following
 ideal = 175
@@ -112,17 +115,17 @@ time_passed = 0
 
 stop_watch = StopWatch()
 
-while((time_passed < 20) or ((not (-5 < x < 5)) or (not (-30 < y < 60)))):
+while((time_passed < 20) or ((not (0 < x < 45)) or (not (-30 < y < 60)))):
 
     stop_watch.resume()
 
     if(leftBump.pressed() or rightBump.pressed()):
         stop_watch.pause()
         stop_watch.reset()
-        run_motors(leftMotor, 80, rightMotor, -200)
+        run_motors(leftMotor, -80, rightMotor, 200)
         wait(1500)
         stop_motors(leftMotor, rightMotor)
-        x, y, theta = update_position(x, y, theta, deg_to_rad(200), deg_to_rad(-80), 1.5)
+        x, y, theta = update_position(x, y, theta, deg_to_rad(-200), deg_to_rad(80), 1.5)
         continue
 
     dist = us.distance()
@@ -155,4 +158,29 @@ stop_motors(leftMotor, rightMotor)
 stop_motors(leftMotor, rightMotor)
 wait(10)
 stop_motors(leftMotor, rightMotor)
+ev3.speaker.beep()
+
+
+run_motors(leftMotor, 150, rightMotor, -150)
+wait(1500)
+
+stop_motors(leftMotor, rightMotor)
+wait(500)
+
+run_motors(leftMotor, -180, rightMotor, -180)
+
+while (not (leftBump.pressed() or rightBump.pressed())):
+    pass
+
+stop_motors(leftMotor, rightMotor)
+stop_motors(leftMotor, rightMotor)
+stop_motors(leftMotor, rightMotor)
+
+run_motors(leftMotor, 180, rightMotor, 180)
+wait(3000)
+
+stop_motors(leftMotor, rightMotor)
+stop_motors(leftMotor, rightMotor)
+stop_motors(leftMotor, rightMotor)
+
 ev3.speaker.beep()
