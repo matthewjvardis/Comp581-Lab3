@@ -29,14 +29,14 @@ def wait_for_button():
     while (Button.CENTER not in EV3Brick.buttons.pressed()):
         pass
 
-def update_position(x, y, theta, ur, ul, t, l=15.1, r=3):
+def update_position(x, y, theta, ur, ul, t, l=14.6, r=3):
     vr = ur * r
     vl = ul * r
 
     if (vr - vl == 0):
         newx = x + vr*math.cos(theta)*t
         newy = y + vl*math.sin(theta)*t
-        return nexx, newy, theta
+        return newx, newy, theta
 
     radius = (l/2) * (vr+vl)/(vr-vl)
     iccx = x - radius*math.sin(theta)
@@ -47,6 +47,12 @@ def update_position(x, y, theta, ur, ul, t, l=15.1, r=3):
     newx = math.cos(alpha)*(x-iccx) - math.sin(alpha)*(y-iccy) + iccx
     newy = math.sin(alpha)*(x-iccx) + math.cos(alpha)*(y-iccy) + iccy
     newTheta = theta + alpha
+
+    while (newTheta > 2*math.pi):
+        newTheta = newTheta - 2*math.pi
+
+    while (newTheta < 0):
+        newTheta = newTheta + 2*math.pi
 
     return newx, newy, newTheta
 
@@ -60,7 +66,6 @@ rightMotor = Motor(port = Port.C, positive_direction = Direction.CLOCKWISE)
 leftBump = TouchSensor(port = Port.S2)
 rightBump = TouchSensor(port = Port.S1)
 us = UltrasonicSensor(port = Port.S4)
-gyro = GyroSensor(port = Port.S3)
 
 # Wait until center button press to move
 
@@ -83,19 +88,24 @@ wait(500)
 x = 0
 y = 0
 theta = math.pi/2
-run_motors(leftMotor, -50, rightMotor, -150)
-wait(3200)
+run_motors(leftMotor, 150, rightMotor, -150)
+wait(1500)
 
 stop_motors(leftMotor, rightMotor)
 stop_motors(leftMotor, rightMotor)
 
-x, y, theta = update_position(x, y, theta, -150, -50, 3200)
+x, y, theta = update_position(x, y, theta, 150, -150, 1.5)
+print("x", str(x))
+print("y", str(y))
+print("theta", str(theta))
+
+theta = 0
 
 ev3.speaker.beep()
 
 
 # Wall following
-ideal = 150
+ideal = 175
 k = 0.5
 
 prev_error = 0
@@ -104,7 +114,7 @@ time_passed = 0
 
 stop_watch = StopWatch()
 
-while((time_passed < 20) or ((not (-60 < x < 0)) or (not (-5 < y < -1)))):
+while((time_passed < 20) or ((not (-3 < x < 0)) or (not (-30 < y < 60)))):
 
     stop_watch.resume()
 
@@ -113,6 +123,8 @@ while((time_passed < 20) or ((not (-60 < x < 0)) or (not (-5 < y < -1)))):
         stop_watch.reset()
         run_motors(leftMotor, 80, rightMotor, -200)
         wait(1500)
+        stop_motors(leftMotor, rightMotor)
+        x, y, theta = update_position(x, y, theta, 200, -80, 1.5)
         continue
 
     dist = us.distance()
@@ -125,28 +137,24 @@ while((time_passed < 20) or ((not (-60 < x < 0)) or (not (-5 < y < -1)))):
     run_motors(leftMotor, -ul, rightMotor, -ur)
 
     prev_error = error
-    wait(500)
+    wait(200)
 
     stop_watch.pause()
-    #stop_motors(leftMotor, rightMotor)
+    
+    stop_motors(leftMotor, rightMotor)
     t = stop_watch.time() / 1000
 
-    x, y, theta = update_position(x, y, theta, deg_to_rad(ur), deg_to_rad(ul), t)
+    x, y, theta = update_position(x, y, theta, ur, ul, t)
     time_passed = time_passed + 1
-    time_passed = min(time_passed, 100)
 
     print("x:", str(x))
     print("y:", str(y))
 
     stop_watch.reset()
-
-
-print(str((not (-1 < x < 5))))
-print(str((not (-5 < y < 5))))
+    wait(50)
 
 stop_motors(leftMotor, rightMotor)
 stop_motors(leftMotor, rightMotor)
 wait(10)
 stop_motors(leftMotor, rightMotor)
-print(time_passed)
 ev3.speaker.beep()
