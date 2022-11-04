@@ -29,7 +29,7 @@ def wait_for_button():
     while (Button.CENTER not in EV3Brick.buttons.pressed()):
         pass
 
-def update_position(x, y, theta, ur, ul, t, l=14.6, r=3):
+def update_position(x, y, theta, ur, ul, t, l=14.6, r=2.75):
     vr = ur * r
     vl = ul * r
 
@@ -61,8 +61,8 @@ ev3 = EV3Brick()
 
 # Initialization of Motors and Sensors
 
-leftMotor = Motor(port = Port.B, positive_direction = Direction.CLOCKWISE)
-rightMotor = Motor(port = Port.C, positive_direction = Direction.CLOCKWISE)
+leftMotor = Motor(port = Port.B, positive_direction = Direction.COUNTERCLOCKWISE)
+rightMotor = Motor(port = Port.C, positive_direction = Direction.COUNTERCLOCKWISE)
 leftBump = TouchSensor(port = Port.S2)
 rightBump = TouchSensor(port = Port.S1)
 us = UltrasonicSensor(port = Port.S4)
@@ -72,7 +72,7 @@ us = UltrasonicSensor(port = Port.S4)
 wait_for_button()
 
 
-run_motors(leftMotor, 180, rightMotor, 180)
+run_motors(leftMotor, -180, rightMotor, -180)
 ev3.speaker.beep()
 
 while (not (leftBump.pressed() or rightBump.pressed())):
@@ -88,18 +88,16 @@ wait(500)
 x = 0
 y = 0
 theta = math.pi/2
-run_motors(leftMotor, 150, rightMotor, -150)
+run_motors(leftMotor, -150, rightMotor, 150)
 wait(1500)
 
 stop_motors(leftMotor, rightMotor)
 stop_motors(leftMotor, rightMotor)
 
-x, y, theta = update_position(x, y, theta, 150, -150, 1.5)
+x, y, theta = update_position(x, y, theta, deg_to_rad(-150), deg_to_rad(150), 1.5)
 print("x", str(x))
 print("y", str(y))
 print("theta", str(theta))
-
-theta = 0
 
 ev3.speaker.beep()
 
@@ -114,7 +112,7 @@ time_passed = 0
 
 stop_watch = StopWatch()
 
-while((time_passed < 20) or ((not (-3 < x < 0)) or (not (-30 < y < 60)))):
+while((time_passed < 20) or ((not (-5 < x < 5)) or (not (-30 < y < 60)))):
 
     stop_watch.resume()
 
@@ -124,7 +122,7 @@ while((time_passed < 20) or ((not (-3 < x < 0)) or (not (-30 < y < 60)))):
         run_motors(leftMotor, 80, rightMotor, -200)
         wait(1500)
         stop_motors(leftMotor, rightMotor)
-        x, y, theta = update_position(x, y, theta, 200, -80, 1.5)
+        x, y, theta = update_position(x, y, theta, deg_to_rad(200), deg_to_rad(-80), 1.5)
         continue
 
     dist = us.distance()
@@ -134,24 +132,24 @@ while((time_passed < 20) or ((not (-3 < x < 0)) or (not (-30 < y < 60)))):
 
     ul = k * error - 150
     ur = -k * error - 150
-    run_motors(leftMotor, -ul, rightMotor, -ur)
+    run_motors(leftMotor, ul, rightMotor, ur)
 
     prev_error = error
     wait(200)
 
     stop_watch.pause()
     
-    stop_motors(leftMotor, rightMotor)
+    #stop_motors(leftMotor, rightMotor)
     t = stop_watch.time() / 1000
 
-    x, y, theta = update_position(x, y, theta, ur, ul, t)
+    x, y, theta = update_position(x, y, theta, deg_to_rad(ur), deg_to_rad(ul), t)
     time_passed = time_passed + 1
 
     print("x:", str(x))
     print("y:", str(y))
 
     stop_watch.reset()
-    wait(50)
+    #wait(50)
 
 stop_motors(leftMotor, rightMotor)
 stop_motors(leftMotor, rightMotor)
