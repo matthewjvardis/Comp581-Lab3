@@ -115,17 +115,28 @@ time_passed = 0
 
 stop_watch = StopWatch()
 
-while((time_passed < 20) or ((not (0 < x < 45)) or (not (-30 < y < 60)))):
+j = 0
+num_left_turns = 0
+left_count = 0
+
+while((time_passed < 20) or ((not (0 < x < 15 + 7 * num_left_turns)) or (not (-30 < y < 60)))):
 
     stop_watch.resume()
 
     if(leftBump.pressed() or rightBump.pressed()):
+        print("x:", str(x))
+        print("y:", str(y))
+        print("theta:", str(theta))       
         stop_watch.pause()
         stop_watch.reset()
         run_motors(leftMotor, -80, rightMotor, 200)
         wait(1500)
         stop_motors(leftMotor, rightMotor)
-        x, y, theta = update_position(x, y, theta, deg_to_rad(-200), deg_to_rad(80), 1.5)
+        x, y, theta = update_position(x, y, theta, deg_to_rad(200), deg_to_rad(-80), 1.5)
+
+        print("x:", str(x))
+        print("y:", str(y))
+        print("theta:", str(theta))
         continue
 
     dist = us.distance()
@@ -138,7 +149,7 @@ while((time_passed < 20) or ((not (0 < x < 45)) or (not (-30 < y < 60)))):
     run_motors(leftMotor, ul, rightMotor, ur)
 
     prev_error = error
-    wait(200)
+    wait(50)
 
     stop_watch.pause()
     
@@ -148,10 +159,21 @@ while((time_passed < 20) or ((not (0 < x < 45)) or (not (-30 < y < 60)))):
     x, y, theta = update_position(x, y, theta, deg_to_rad(ur), deg_to_rad(ul), t)
     time_passed = time_passed + 1
 
-    print("x:", str(x))
-    print("y:", str(y))
+    if (j % 5 == 0):
+        print("x:", str(x))
+        print("y:", str(y))
+        print("theta:", str(theta))
+
+    if (ur < ul):
+        left_count += 1
+    else:
+        if (left_count > 20):
+            num_left_turns += 1
+            ev3.speaker.beep()
+        left_count = 0
 
     stop_watch.reset()
+    j += 1
     #wait(50)
 
 stop_motors(leftMotor, rightMotor)
@@ -159,7 +181,6 @@ stop_motors(leftMotor, rightMotor)
 wait(10)
 stop_motors(leftMotor, rightMotor)
 ev3.speaker.beep()
-
 
 run_motors(leftMotor, 150, rightMotor, -150)
 wait(1500)
