@@ -119,7 +119,7 @@ j = 0
 num_left_turns = 0
 left_count = 0
 
-while((time_passed < 20) or ((not (0 < x < 15 + 7 * num_left_turns)) or (not (-30 < y < 60)))):
+while((time_passed < 20) or ((not (0 < x < 15 + 0.08 * num_left_turns)) or (not (-30 < y < 60)))):
 
     stop_watch.resume()
 
@@ -167,8 +167,8 @@ while((time_passed < 20) or ((not (0 < x < 15 + 7 * num_left_turns)) or (not (-3
     if (ur < ul):
         left_count += 1
     else:
-        if (left_count > 20):
-            num_left_turns += 1
+        if (left_count > 30):
+            num_left_turns += left_count
             ev3.speaker.beep()
         left_count = 0
 
