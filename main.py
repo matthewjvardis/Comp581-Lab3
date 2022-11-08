@@ -48,10 +48,10 @@ def update_position(x, y, theta, ur, ul, t, l=14.8, r=3):
     newy = math.sin(alpha)*(x-iccx) + math.cos(alpha)*(y-iccy) + iccy
     newTheta = theta + alpha
 
-    while (newTheta > 2*math.pi):
+    while (newTheta > math.pi):
         newTheta = newTheta - 2*math.pi
 
-    while (newTheta < 0):
+    while (newTheta < -math.pi):
         newTheta = newTheta + 2*math.pi
 
     return newx, newy, newTheta
@@ -65,18 +65,22 @@ leftMotor = Motor(port = Port.B, positive_direction = Direction.COUNTERCLOCKWISE
 rightMotor = Motor(port = Port.C, positive_direction = Direction.COUNTERCLOCKWISE)
 leftBump = TouchSensor(port = Port.S3)
 rightBump = TouchSensor(port = Port.S1)
-us = UltrasonicSensor(port = Port.S2)
-
-# Wait until center button press to move
+us = UltrasonicSensor(port = Port.S4)
 
 wait_for_button()
-
+stop_watch = StopWatch()
+stop_watch.resume()
 
 run_motors(leftMotor, -180, rightMotor, -180)
 ev3.speaker.beep()
 
 while (not (leftBump.pressed() or rightBump.pressed())):
     pass
+
+stop_watch.pause()
+time_to_wall = stop_watch.time()
+print(str(time_to_wall))
+stop_watch.reset()
 
 stop_motors(leftMotor, rightMotor)
 stop_motors(leftMotor, rightMotor)
@@ -89,54 +93,56 @@ x = 0
 y = 0
 theta = math.pi/2
 run_motors(leftMotor, -150, rightMotor, 150)
-wait(1500)
+wait(2000)
 
 stop_motors(leftMotor, rightMotor)
 stop_motors(leftMotor, rightMotor)
 
-x, y, theta = update_position(x, y, theta, deg_to_rad(-150), deg_to_rad(150), 1.5)
-print("x", str(x))
-print("y", str(y))
-print("theta", str(theta))
+x, y, theta = update_position(x, y, theta, deg_to_rad(-150), deg_to_rad(150), 2)
+
+print("x:", str(x))
+print("y:", str(y))
 
 ev3.speaker.beep()
 
 wait(1500)
 dist = us.distance()
 
-
 # Wall following
-ideal = 175
+ideal = 225
 k = 0.5
 
 prev_error = 0
 
 time_passed = 0
 
-stop_watch = StopWatch()
-
 j = 0
 num_left_turns = 0
 left_count = 0
+left_turn = 0
+total_time = 0
+x_ibound = 0 
+x_turnbound = 0
+p = .01
 
-while((time_passed < 20) or ((not (0 < x < 15 + 0.08 * num_left_turns)) or (not (-30 < y < 60)))):
+while((time_passed < 100) or ((not (0 < x < 5 + (p * num_left_turns)) or (not (-200 < y < 30))))):
+
+    total_time = total_time + 1 
 
     stop_watch.resume()
 
     if(leftBump.pressed() or rightBump.pressed()):
         print("x:", str(x))
         print("y:", str(y))
-        print("theta:", str(theta))       
         stop_watch.pause()
         stop_watch.reset()
         run_motors(leftMotor, -80, rightMotor, 200)
         wait(1500)
         stop_motors(leftMotor, rightMotor)
         x, y, theta = update_position(x, y, theta, deg_to_rad(200), deg_to_rad(-80), 1.5)
-
+        
         print("x:", str(x))
         print("y:", str(y))
-        print("theta:", str(theta))
         continue
 
     dist = us.distance()
@@ -159,21 +165,26 @@ while((time_passed < 20) or ((not (0 < x < 15 + 0.08 * num_left_turns)) or (not 
     x, y, theta = update_position(x, y, theta, deg_to_rad(ur), deg_to_rad(ul), t)
     time_passed = time_passed + 1
 
-    if (j % 5 == 0):
+    if (j % 20 == 0):
         print("x:", str(x))
         print("y:", str(y))
-        print("theta:", str(theta))
 
     if (ur < ul):
         left_count += 1
     else:
         if (left_count > 30):
             num_left_turns += left_count
-            ev3.speaker.beep()
-        left_count = 0
+            left_turn = left_turn+1
+            #ev3.speaker.beep()
+        left_count = 0 
 
     stop_watch.reset()
     j += 1
+
+    x_ibound = num_left_turns*(0.0004554) - 0.2274653
+    x_turnbound = (left_turn)*(.0375)-.1775
+    p = (2.*x_ibound + 4*(x_turnbound))/6
+
     #wait(50)
 
 stop_motors(leftMotor, rightMotor)
@@ -181,26 +192,40 @@ stop_motors(leftMotor, rightMotor)
 wait(10)
 stop_motors(leftMotor, rightMotor)
 ev3.speaker.beep()
+stop_watch.pause()
+stop_watch.reset()
 
-run_motors(leftMotor, 150, rightMotor, -150)
-wait(1500)
+print(num_left_turns)
+print(str(left_turn))
+print(str(p))
 
-stop_motors(leftMotor, rightMotor)
-wait(500)
+run_motors(leftMotor, 100, rightMotor, -100)
+wait(2000)
 
 run_motors(leftMotor, -180, rightMotor, -180)
 
-while (not (leftBump.pressed() or rightBump.pressed())):
-    pass
+while (not (leftBump.pressed() and rightBump.pressed())):
+    if (leftBump.pressed()):
+        run_motors(leftMotor, 50, rightMotor, -180)
+    elif (rightBump.pressed()):
+        run_motors(leftMotor, -180, rightMotor, 50)
+    
 
 stop_motors(leftMotor, rightMotor)
+stop_motors(leftMotor, rightMotor)
+wait(1000)
+
 stop_motors(leftMotor, rightMotor)
 stop_motors(leftMotor, rightMotor)
 
 run_motors(leftMotor, 180, rightMotor, 180)
-wait(3000)
+stop_watch.reset()
+stop_watch.resume()
 
-stop_motors(leftMotor, rightMotor)
+while(stop_watch.time() < time_to_wall):
+    pass
+
+stop_watch.reset()
 stop_motors(leftMotor, rightMotor)
 stop_motors(leftMotor, rightMotor)
 
